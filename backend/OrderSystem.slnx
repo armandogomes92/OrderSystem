@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/OrderAccumulator/">
+    <Project Path="OrderAccumulator/src/OrderAccumulator.Core/OrderAccumulator.Core.csproj" />
+    <Project Path="OrderAccumulator/src/OrderAccumulator.Worker/OrderAccumulator.Worker.csproj" />
+    <Project Path="OrderAccumulator/tests/OrderAccumulator.Tests/OrderAccumulator.Tests.csproj" />
+  </Folder>
+</Solution>
