@@ -8,24 +8,52 @@ namespace OrderAccumulator.Tests.WorkerFix;
 
 public class FixOrderTranslatorTests
 {
-    private static NewOrderSingle CreateNewOrderSingle(char side = Side.BUY) 
+    private static NewOrderSingle CreateNewOrderSingle(char side = Side.BUY, decimal quantity = 100m, decimal price = 10.50m)
         => new(new ClOrdID("ORD-1"), new Symbol("PETR4"), new Side(side), new TransactTime(DateTime.UtcNow), new OrdType(OrdType.LIMIT))
-    {
-        OrderQty = new OrderQty(100m),
-        Price = new Price(10.50m)
-    };
+        {
+            OrderQty = new OrderQty(quantity),
+            Price = new Price(price)
+        };
 
     [Theory]
     [InlineData(Side.BUY, OrderSide.Buy)]
     [InlineData(Side.SELL, OrderSide.Sell)]
-    public void ToOrder_converte_os_campos_da_mensagem(char fixSide, OrderSide expectedSide)
+    public void TryToOrder_converte_os_campos_da_mensagem(char fixSide, OrderSide expectedSide)
     {
-        var order = FixOrderTranslator.ToOrder(CreateNewOrderSingle(fixSide));
+        var ok = FixOrderTranslator.TryToOrder(CreateNewOrderSingle(fixSide), out var order, out var rejectReason);
 
+        Assert.True(ok);
+        Assert.Null(rejectReason);
+        Assert.NotNull(order);
         Assert.Equal("PETR4", order.Symbol);
         Assert.Equal(expectedSide, order.Side);
         Assert.Equal(100m, order.Quantity);
         Assert.Equal(10.50m, order.Price);
+    }
+
+    [Fact]
+    public void TryToOrder_rejeita_lado_nao_suportado()
+    {
+        var ok = FixOrderTranslator.TryToOrder(CreateNewOrderSingle(Side.SELL_SHORT), out var order, out var rejectReason);
+
+        Assert.False(ok);
+        Assert.Null(order);
+        Assert.False(string.IsNullOrWhiteSpace(rejectReason));
+    }
+
+    [Theory]
+    [InlineData(0, 10.5)]
+    [InlineData(-1, 10.5)]
+    [InlineData(100, 0)]
+    [InlineData(100, -1)]
+    public void TryToOrder_rejeita_quantidade_ou_preco_nao_positivo(double quantity, double price)
+    {
+        var ok = FixOrderTranslator.TryToOrder(
+            CreateNewOrderSingle(quantity: (decimal)quantity, price: (decimal)price), out var order, out var rejectReason);
+
+        Assert.False(ok);
+        Assert.Null(order);
+        Assert.False(string.IsNullOrWhiteSpace(rejectReason));
     }
 
     [Fact]
@@ -57,6 +85,19 @@ public class FixOrderTranslatorTests
         Assert.Equal(OrdStatus.REJECTED, report.OrdStatus.Value);
         Assert.Equal(OrdRejReason.ORDER_EXCEEDS_LIMIT, report.OrdRejReason.Value);
         Assert.Equal("Limite de exposição excedido", report.Text.Value);
+        Assert.Equal("ORD-1", report.ClOrdID.Value);
+        Assert.Equal(0m, report.LeavesQty.Value);
+    }
+
+    [Fact]
+    public void Ordem_invalida_gera_ExecutionReport_Rejected()
+    {
+        var report = FixOrderTranslator.ToInvalidOrderReport(CreateNewOrderSingle(Side.SELL_SHORT), "Lado não suportado.");
+
+        Assert.Equal(ExecType.REJECTED, report.ExecType.Value);
+        Assert.Equal(OrdStatus.REJECTED, report.OrdStatus.Value);
+        Assert.Equal(OrdRejReason.OTHER, report.OrdRejReason.Value);
+        Assert.Equal("Lado não suportado.", report.Text.Value);
         Assert.Equal("ORD-1", report.ClOrdID.Value);
         Assert.Equal(0m, report.LeavesQty.Value);
     }
