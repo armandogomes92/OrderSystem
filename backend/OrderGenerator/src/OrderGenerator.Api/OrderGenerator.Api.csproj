@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -15,5 +15,15 @@
   <ItemGroup>
     <ProjectReference Include="..\OrderGenerator.Core\OrderGenerator.Core.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="SessionConfig\" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<None Update="SessionConfig\fix-initiator.cfg">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 
 </Project>
