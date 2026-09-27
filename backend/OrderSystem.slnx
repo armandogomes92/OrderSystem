@@ -4,4 +4,9 @@
     <Project Path="OrderAccumulator/src/OrderAccumulator.Worker/OrderAccumulator.Worker.csproj" />
     <Project Path="OrderAccumulator/tests/OrderAccumulator.Tests/OrderAccumulator.Tests.csproj" />
   </Folder>
+  <Folder Name="/OrderGenerator/">
+    <Project Path="OrderGenerator/src/OrderGenerator.Api/OrderGenerator.Api.csproj" />
+    <Project Path="OrderGenerator/src/OrderGenerator.Core/OrderGenerator.Core.csproj" />
+    <Project Path="OrderGenerator/tests/OrderGenerator.Tests/OrderGenerator.Tests.csproj" />
+  </Folder>
 </Solution>
