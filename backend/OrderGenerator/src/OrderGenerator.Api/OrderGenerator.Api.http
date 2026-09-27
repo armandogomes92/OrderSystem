@@ -1,6 +1,25 @@
 @OrderGenerator.Api_HostAddress = http://localhost:5298
 
-GET {{OrderGenerator.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### 1. Ordem válida (esperado: 200, status New)
+POST {{OrderGenerator.Api_HostAddress}}/api/orders
+Content-Type: application/json
 
-###
+{ "symbol": "PETR4", "side": "Buy", "quantity": 100, "price": 10.50 }
+
+### 2. Ordem inválida (esperado: 400)
+POST {{OrderGenerator.Api_HostAddress}}/api/orders
+Content-Type: application/json
+
+{ "symbol": "ITUB4", "side": "Buy", "quantity": 100000, "price": 10.005 }
+
+### 3. Ordem grande: ~R$ 99,99 milhões (esperado: 200, status New)
+POST {{OrderGenerator.Api_HostAddress}}/api/orders
+Content-Type: application/json
+
+{ "symbol": "VALE3", "side": "Buy", "quantity": 99999, "price": 999.99 }\
+
+### 4. Repetir a mesma ordem grande (esperado: 200, status Rejected)
+POST {{OrderGenerator.Api_HostAddress}}/api/orders
+Content-Type: application/json
+
+{ "symbol": "VALE3", "side": "Buy", "quantity": 99999, "price": 999.99 }
