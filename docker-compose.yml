@@ -1,0 +1,26 @@
+services:
+  accumulator:
+    build:
+      context: ./backend
+      dockerfile: OrderAccumulator/src/OrderAccumulator.Worker/Dockerfile
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: OrderGenerator/src/OrderGenerator.Api/Dockerfile
+    environment:
+      Fix__ConnectHost: accumulator
+    ports:
+      - "5298:8080"
+    depends_on:
+      - accumulator
+
+  web:
+    build:
+      context: ./frontend/order-generator-web
+      args:
+        VITE_API_URL: http://localhost:5298
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
