@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "Api + Worker",
+    "Projects": [
+      {
+        "Path": "OrderAccumulator\\src\\OrderAccumulator.Worker\\OrderAccumulator.Worker.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "OrderGenerator\\src\\OrderGenerator.Api\\OrderGenerator.Api.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
