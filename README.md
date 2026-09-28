@@ -64,14 +64,28 @@ sequenceDiagram
 - Enums trafegam como texto no JSON (`"side": "Buy"`, `"status": "Rejected"`).
 - CORS liberado para o frontend em `http://localhost:5173`.
 
-| Situação | HTTP |
-|---|---|
-| Ordem aceita ou rejeitada pelo OrderAccumulator | `200` |
-| Campos inválidos | `400` (erros por campo) |
-| Sessão FIX desconectada | `503` |
-| Sem resposta em 5 segundos | `504` |
+| Situação | HTTP | Verbo |
+|---|---| --- |
+| Ordem aceita ou rejeitada pelo OrderAccumulator | `200` | **OK** |
+| Campos inválidos | `400` (erros por campo) | **Bad Request** |
+| Sessão FIX desconectada | `503` | **Service Unavailable** |
+| Sem resposta em 5 segundos | `504` | **Gateway Timeout** |
 
 Uma ordem rejeitada pelo limite retorna `200`: a requisição foi processada e o resultado é `Rejected`.
+
+**Frontend**
+
+- React + TypeScript com Vite, sem bibliotecas de componentes ou de formulário.
+- Validação no navegador apenas para usabilidade; a API é a autoridade e seus erros de validação são exibidos nos campos correspondentes.
+- O preço é digitado a partir dos centavos, no padrão brasileiro: cada dígito entra pela direita (`1` → `0,01`, `10` → `0,10`, `1050` → `10,50`), até o limite de `999,99`. O valor é mantido em centavos inteiros, o que garante o múltiplo de 0,01 sem aritmética de ponto flutuante, e é convertido para o formato da API apenas no envio.
+- A quantidade aceita somente dígitos, é exibida com separador de milhar e limitada a `99.999` no próprio campo.
+- A partir do primeiro campo preenchido, um resumo ao lado do formulário mostra a ordem em tempo real, incluindo o volume financeiro (quantidade × preço) e o limite de exposição por símbolo.
+- Símbolo e Lado são apresentados como controles segmentados. O layout é claro e minimalista, com tons usados apenas como destaque baseado na no site da base.
+- O Lado é exibido como Compra/Venda e enviado como `Buy`/`Sell`.
+- Quando a API responde à ordem (aceita ou rejeitada), o formulário é limpo, o resumo é ocultado e o resultado é exibido em uma modal (`<dialog>` nativo), fechada pelo botão OK ou pela tecla Esc. Em caso de falha de conexão, sessão FIX indisponível ou timeout, os campos são mantidos para nova tentativa e o erro aparece ao lado do formulário.
+- A chamada HTTP é isolada em `api/OrdersApi.ts`, que converte cada resposta (`200`, `400`, `503`, `504` ou falha de rede) em um resultado tipado.
+- URL da API configurada por variável de ambiente (`VITE_API_URL`).
+- O frontend não possui testes automatizados; as regras de negócio e de validação são cobertas pelos testes do backend.
 
 ### Premissas
 
@@ -116,6 +130,16 @@ backend/
         └── OrderGenerator.Tests/
             ├── CoreValidation/ OrderValidatorTests
             └── ApiFix/         FixOrderTranslatorTests, PendingOrderRegistryTests
+
+frontend/
+└── order-generator-web/
+    ├── src/
+    │   ├── api/           OrdersApi
+    │   ├── orders/        types, validations, price, quantity
+    │   ├── components/    OrderForm, OrderSummary, OrderResult, ResultModal
+    │   ├── App.tsx
+    │   └── main.tsx
+    └── .env.development   VITE_API_URL
 ```
 
 ## Testes
@@ -189,7 +213,7 @@ xUnit, sem dependência de rede. 56 testes no total.
 
 ## Execução
 
-Pré-requisito: .NET 10 SDK. Comandos executados a partir de `backend/`.
+Pré-requisitos: .NET 10 SDK e Node.js 20.19+ ou 22.12+. Os comandos do backend são executados a partir de `backend/`.
 
 ### Testes
 
@@ -215,13 +239,34 @@ A API fica disponível em `http://localhost:5298`. O arquivo `OrderGenerator.Api
 
 O Initiator tenta reconectar a cada 5 segundos, portanto as aplicações podem ser iniciadas em qualquer ordem.
 
+### Frontend
+
+Em um terceiro terminal, a partir de `frontend/order-generator-web/`:
+
+```powershell
+npm install
+npm run dev
+```
+
+O formulário fica disponível em `http://localhost:5173`.
+
 ### Sessão FIX
 
-| Parâmetro | OrderAccumulator (Acceptor) | OrderGenerator (Initiator) |
-|---|---|---|
-| BeginString | `FIX.4.4` | `FIX.4.4` |
-| SenderCompID | `ACCUMULATOR` | `GENERATOR` |
 | TargetCompID | `GENERATOR` | `ACCUMULATOR` |
 | Porta | `5001` (escuta) | `5001` (conecta) |
 
 Os diretórios `store/` e `log/` são gerados pelo QuickFIX/n em tempo de execução e não são versionados.
+
+## CI/CD (Extra)
+
+Apenas para continuar uma intenção de simulação de publicação que, estava criando manualmente via PR's
+
+| Workflow | Gatilho | Etapas |
+|---|---|---|
+| `ci` | Pull request para `develop` ou `main` | Backend: build e testes. Frontend: lint e build |
+| `cd` | Push em `develop` ou `main` | Testes do backend, publicação do backend e build do frontend |
+
+- Push em `develop` publica no ambiente `development`.
+- Push em `main` publica no ambiente `production`, mediante aprovação.
+- A URL da API usada no build do frontend vem da variável `API_URL` de cada ambiente do GitHub (padrão: `http://localhost:5298`).
+- Não há servidor de destino: os pacotes publicados (backend e frontend) ficam disponíveis como um único artefato da execução.
